@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Secret Holiday Cards</title>
+    <style>
+        /* Reset & Base - DEEPER BLUE */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #050c1a; /* Almost black dark blue */
+            color: white;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Audio player (hidden) - VERY LOW VOLUME */
+        #bgMusic {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Hexagon Snowflakes - VERY SLOW, FLOATING */
+        .snowflake {
+            position: absolute;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,0 93,25 93,75 50,100 7,75 7,25" fill="white"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0;
+            z-index: 1;
+            pointer-events: none;
+            filter: blur(0.3px);
+        }
+        
+        /* Ho PNG Container - MOVED 200px HIGHER */
+        .ho-stack {
+            position: absolute;
+            top: 15%; /* Much higher */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 450px; /* Tighter */
+            height: 250px;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px; /* Small gap */
+        }
+        
+        /* First row of 3 Ho PNGs */
+        .ho-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .ho-png {
+            opacity: 0;
+            transform-origin: center;
+            filter: 
+                invert(1)
+                brightness(1.2)
+                drop-shadow(0 0 15px rgba(255, 255, 255, 0.25));
+            max-width: 130px; /* Fixed size */
+            max-height: 130px;
+            object-fit: contain;
+        }
+        
+        /* Slogan - BETWEEN THE TWO ROWS OF Ho */
+        .slogan {
+            position: relative;
+            width: 100%;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 100;
+            font-size: 22px; /* Smaller for between rows */
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.4;
+            text-align: center;
+            letter-spacing: 0.6px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+            margin: 10px 0;
+            opacity: 0;
+            z-index: 3;
+        }
+        
+        /* Second row of 3 Ho PNGs */
+        .ho-row-bottom {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        /* Years Navigation - ADJUSTED FOR NEW LAYOUT */
+        .years-container {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            z-index: 3;
+            opacity: 0;
+        }
+        
+        .year {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 100;
+            font-size: 88px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            letter-spacing: -1.5px;
+            line-height: 0.82;
+            transition: all 0.3s ease;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+        }
+        
+        .year:hover {
+            color: white;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.25);
+            letter-spacing: -1px;
+        }
+        
+        /* Fullscreen Card Preview */
+        .card-preview {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            display: none;
+            background: rgba(5, 12, 26, 0.98); /* Deeper blue */
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            cursor: pointer;
+        }
+        
+        .card-preview.active {
+            opacity: 1;
+            display: block;
+        }
+        
+        .card-preview img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.4s ease 0.1s;
+            pointer-events: none;
+        }
+        
+        .card-preview.active img {
+            opacity: 1;
+        }
+        
+        .close-hint {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 300;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .card-preview.active .close-hint {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Music - 30% volume (very very low) -->
+    <audio id="bgMusic" autoplay loop>
+        <source src="assets/xmusic.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    
+    <!-- Ho PNG Stack - 2 rows with slogan in middle -->
+    <div class="ho-stack" id="hoStack">
+        <!-- First row of 3 -->
+        <div class="ho-row" id="hoRowTop">
+            <img class="ho-png" src="assets/ho1.png" alt="Ho">
+            <img class="ho-png" src="assets/ho2.png" alt="Ho">
+            <img class="ho-png" src="assets/ho3.png" alt="Ho">
+        </div>
+        
+        <!-- Slogan BETWEEN rows -->
+        <div class="slogan" id="slogan">
+            Enough about the Kardashians,<br>
+            Merry Christmas everyone!
+        </div>
+        
+        <!-- Second row of 3 -->
+        <div class="ho-row-bottom" id="hoRowBottom">
+            <img class="ho-png" src="assets/ho4.png" alt="Ho">
+            <img class="ho-png" src="assets/ho5.png" alt="Ho">
+            <img class="ho-png" src="assets/ho6.png" alt="Ho">
+        </div>
+    </div>
+    
+    <!-- Years Navigation -->
+    <div class="years-container" id="yearsContainer">
+        <div class="year" data-year="2025">2025</div>
+        <div class="year" data-year="2024">2024</div>
+        <div class="year" data-year="2023">2023</div>
+        <div class="year" data-year="2022">2022</div>
+        <div class="year" data-year="2021">2021</div>
+        <div class="year" data-year="2020">2020</div>
+        <div class="year" data-year="2019">2019</div>
+    </div>
+    
+    <!-- Fullscreen Card Preview -->
+    <div class="card-preview" id="cardPreview" onclick="closeCardPreview()">
+        <div class="close-hint">Tap anywhere to close</div>
+        <img id="previewImage" src="" alt="Holiday Card">
+    </div>
+    
+    <script>
+        // Configuration
+        const hoPNGs = [
+            'assets/ho1.png',
+            'assets/ho2.png',
+            'assets/ho3.png', 
+            'assets/ho4.png',
+            'assets/ho5.png',
+            'assets/ho6.png'
+        ];
+        
+        const cardImages = {
+            "2025": "assets/2025-card.jpg",
+            "2024": "assets/2024-card.jpg",
+            "2023": "assets/2023-card.jpg",
+            "2022": "assets/2022-card.jpg", 
+            "2021": "assets/2021-card.jpg",
+            "2020": "assets/2020-card.jpg",
+            "2019": "assets/2019-card.jpg"
+        };
+        
+        // Snowflake management
+        let snowflakeCount = 0;
+        const MAX_SNOWFLAKES = 40; // Fewer but floating
+        
+        // Initialize
+        window.onload = function() {
+            // Start background music at 30% volume (very low)
+            const bgMusic = document.getElementById('bgMusic');
+            bgMusic.volume = 0.30; // 30% volume
+            bgMusic.play().catch(e => {
+                console.log("Autoplay prevented. Click page to start music.");
+                document.body.addEventListener('click', function startMusicOnce() {
+                    bgMusic.play();
+                    document.body.removeEventListener('click', startMusicOnce);
+                });
+            });
+            
+            startAnimationSequence();
+            setupYearHover();
+            
+            // Close preview on ESC key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeCardPreview();
+                }
+            });
+            
+            // Set initial inline styles to hidden
+            document.getElementById('slogan').style.opacity = '0';
+            document.getElementById('yearsContainer').style.opacity = '0';
+            document.querySelectorAll('.ho-png').forEach(img => {
+                img.style.opacity = '0';
+                img.style.transform = 'scale(0.8)';
+            });
+        };
+        
+        // Start the animation sequence
+        function startAnimationSequence() {
+            // Step 1: Create floating snowflakes (very slow)
+            startFloatingSnow();
+            
+            // Step 2: Animate Ho PNGs in two rows
+            setTimeout(() => {
+                animateHoPNGs();
+            }, 800);
+            
+            // Step 3: Show slogan between rows
+            setTimeout(() => {
+                showSlogan();
+            }, 3000);
+            
+            // Step 4: Show years
+            setTimeout(() => {
+                showYears();
+            }, 4000);
+            
+            // Step 5: AUTO-SHOW 2025 card 2 seconds after slogan
+            setTimeout(() => {
+                autoShow2025();
+            }, 5000); // 2 seconds after slogan appears
+        }
+        
+        // Auto-show 2025 card
+        function autoShow2025() {
+            setTimeout(() => {
+                showCardPreview("2025");
+            }, 2000); // 2 seconds after slogan
+        }
+        
+        // Start floating snow - VERY SLOW (20% speed)
+        function startFloatingSnow() {
+            // Initial batch
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    createSnowflake();
+                }, i * 500); // Slower creation
+            }
+            
+            // Continuous creation - never stops
+            setInterval(() => {
+                if (snowflakeCount < MAX_SNOWFLAKES) {
+                    createSnowflake();
+                }
+            }, 1500); // New flake every 1.5 seconds
+        }
+        
+        // Create a single snowflake - VERY SLOW FLOAT
+        function createSnowflake() {
+            const flake = document.createElement('div');
+            flake.className = 'snowflake';
+            
+            // Very small size (4-10px)
+            const size = Math.random() * 6 + 4;
+            flake.style.width = size + 'px';
+            flake.style.height = size + 'px';
+            
+            const rotation = Math.random() * 360;
+            
+            // Random position across entire top
+            const left = Math.random() * 100;
+            flake.style.left = left + 'vw';
+            flake.style.top = '-20px';
+            
+            // Very transparent (0.1 to 0.35)
+            const opacity = Math.random() * 0.25 + 0.1;
+            flake.style.opacity = '0';
+            
+            document.body.appendChild(flake);
+            snowflakeCount++;
+            
+            // VERY SLOW FLOAT (40-80 seconds) - 20% of original speed
+            const floatDuration = Math.random() * 40 + 40;
+            const horizontalDrift = (Math.random() - 0.5) * 60; // Minimal drift
+            const finalTop = 80 + Math.random() * 15;
+            
+            // Gentle floating animation
+            const animation = flake.animate([
+                { 
+                    transform: `translateY(0px) translateX(0px) rotate(${rotation}deg)`,
+                    opacity: 0 
+                },
+                { 
+                    opacity: opacity,
+                    offset: 0.05
+                },
+                { 
+                    opacity: opacity * 0.8,
+                    offset: 0.5
+                },
+                { 
+                    transform: `translateY(${finalTop}vh) translateX(${horizontalDrift}px) rotate(${rotation + 60}deg)`,
+                    opacity: opacity * 0.4
+                }
+            ], {
+                duration: floatDuration * 1000,
+                easing: 'cubic-bezier(0.1, 0, 0, 0.9)', // Very slow ease
+                fill: 'forwards'
+            });
+            
+            // Very slow fade in
+            setTimeout(() => {
+                flake.style.opacity = opacity;
+            }, 500);
+            
+            // Remove after animation completes
+            animation.onfinish = () => {
+                setTimeout(() => {
+                    if (flake.parentNode) {
+                        flake.parentNode.removeChild(flake);
+                        snowflakeCount--;
+                    }
+                }, 2000);
+            };
+        }
+        
+        // Animate Ho PNGs in two rows (3 in each)
+        function animateHoPNGs() {
+            const rowTop = document.getElementById('hoRowTop');
+            const rowBottom = document.getElementById('hoRowBottom');
+            
+            // Clear existing images
+            rowTop.innerHTML = '';
+            rowBottom.innerHTML = '';
+            
+            // First 3 PNGs go to top row
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    createHoElement(hoPNGs[i], rowTop, i, 'top');
+                }, i * 400);
+            }
+            
+            // Last 3 PNGs go to bottom row
+            for (let i = 3; i < 6; i++) {
+                setTimeout(() => {
+                    createHoElement(hoPNGs[i], rowBottom, i - 3, 'bottom');
+                }, (i * 400) + 600);
+            }
+        }
+        
+        // Create and animate a single Ho element
+        function createHoElement(pngSrc, container, index, rowType) {
+            const ho = document.createElement('img');
+            ho.className = 'ho-png';
+            ho.src = pngSrc;
+            ho.alt = 'Ho';
+            
+            // Start position (above)
+            ho.style.position = 'relative';
+            ho.style.top = rowType === 'top' ? '-150px' : '-100px';
+            ho.style.opacity = '0';
+            ho.style.transform = `scale(0.8) rotate(${Math.random() * 15 - 7.5}deg)`;
+            ho.style.transition = 'none';
+            
+            container.appendChild(ho);
+            
+            // Animate falling into position
+            setTimeout(() => {
+                ho.style.transition = 'all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                ho.style.opacity = '1';
+                ho.style.top = '0';
+                ho.style.transform = `scale(1) rotate(${Math.random() * 4 - 2}deg)`;
+            }, 100);
+        }
+        
+        // Show slogan between rows
+        function showSlogan() {
+            const slogan = document.getElementById('slogan');
+            slogan.style.transition = 'opacity 1.5s ease';
+            slogan.style.opacity = '1';
+        }
+        
+        // Show years
+        function showYears() {
+            const years = document.getElementById('yearsContainer');
+            years.style.transition = 'opacity 1.2s ease';
+            years.style.opacity = '1';
+        }
+        
+        // Setup year hover preview
+        function setupYearHover() {
+            let previewTimer;
+            let currentYear = null;
+            
+            document.querySelectorAll('.year').forEach(yearElement => {
+                yearElement.addEventListener('mouseenter', function(e) {
+                    const year = this.getAttribute('data-year');
+                    currentYear = year;
+                    
+                    clearTimeout(previewTimer);
+                    
+                    previewTimer = setTimeout(() => {
+                        if (currentYear === year) {
+                            showCardPreview(year);
+                        }
+                    }, 200);
+                });
+                
+                yearElement.addEventListener('mouseleave', function(e) {
+                    if (!e.relatedTarget || !e.relatedTarget.closest('.card-preview')) {
+                        clearTimeout(previewTimer);
+                        currentYear = null;
+                    }
+                });
+                
+                yearElement.addEventListener('click', function(e) {
+                    const year = this.getAttribute('data-year');
+                    showCardPreview(year);
+                });
+            });
+        }
+        
+        // Show fullscreen card preview
+        function showCardPreview(year) {
+            const preview = document.getElementById('cardPreview');
+            const img = document.getElementById('previewImage');
+            
+            if (cardImages[year]) {
+                img.src = cardImages[year];
+                img.alt = `${year} Holiday Card`;
+            } else {
+                img.src = `https://placehold.co/1920x1080/050c1a/ffffff?text=${year}+Holiday+Card`;
+                img.alt = `${year} Holiday Card (Placeholder)`;
+            }
+            
+            preview.classList.add('active');
+        }
+        
+        // Close card preview
+        function closeCardPreview() {
+            const preview = document.getElementById('cardPreview');
+            preview.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
